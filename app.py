@@ -25,7 +25,7 @@ st.markdown("""
 # Logo
 logo = Image.open("logo-white.png")
 st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-st.image(logo, width=200)
+st.image(logo, width=300)
 st.markdown("</div>", unsafe_allow_html=True)
 
 
