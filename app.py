@@ -12,7 +12,7 @@ st.set_page_config(page_title="Pasiūlymų generatorius", layout="wide")
 st.markdown("""
     <style>
         body, .stApp {
-            background-color: #ff0000;
+            background-color: #ff4040;
         }
         .centered-logo {
             display: flex;
