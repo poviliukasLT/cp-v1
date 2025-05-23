@@ -23,7 +23,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Logo
-st.markdown('<div class="centered-logo"><img src="logo-white.png" width="200"></div>', unsafe_allow_html=True)
+logo = Image.open("logo-white.png")
+st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+st.image(logo, width=200)
+st.markdown("</div>", unsafe_allow_html=True)
+
 
 st.title("📦 Pasiūlymų kūrimo įrankis v1")
 
