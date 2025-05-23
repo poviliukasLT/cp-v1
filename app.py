@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import pytz
@@ -6,7 +7,7 @@ from io import BytesIO
 
 st.set_page_config(page_title="Pasiūlymų generatorius", layout="wide")
 
-st.title("📦 Pasiūlymų kūrimo įrankis")
+st.title("📦 Pasiūlymų kūrimas")
 
 # Atmintis tarp seansų
 if 'pasirinktos_eilutes' not in st.session_state:
@@ -33,17 +34,22 @@ rename_rules = {
                   "PET up to 0,75l", "PET over 0,75l", "GLASS up to 0,5l", "GLASS over 0,5l"]
 }
 
+@st.cache_data
+def load_excel(file):
+    excel = pd.ExcelFile(file)
+    return {sheet: excel.parse(sheet).dropna(how="all").reset_index(drop=True) for sheet in excel.sheet_names}
+
 # 1. Įkelti failus
 uploaded_files = st.file_uploader("📁 Įkelkite Excel failus:", type="xlsx", accept_multiple_files=True)
 
 if uploaded_files:
     all_sheets = {}
     for file in uploaded_files:
-        excel = pd.ExcelFile(file)
-        for sheet in excel.sheet_names:
+        sheet_data = load_excel(file)
+        for sheet, df in sheet_data.items():
             key = f"{file.name} -> {sheet}"
             all_sheets[key] = {
-                "data": excel.parse(sheet).dropna(how="all").reset_index(drop=True),
+                "data": df,
                 "filename": file.name.split(".")[0]
             }
 
@@ -51,7 +57,7 @@ if uploaded_files:
     df = all_sheets[pasirinkimas]["data"]
     filename = all_sheets[pasirinkimas]["filename"]
 
-    st.dataframe(df)
+    st.dataframe(df.head(100))  # parodyti tik pirmas 100 eilučių
 
     pasirinktos_eilutes = st.multiselect("✅ Pasirinkite eilučių numerius:", df.index)
     if st.button("➕ Pridėti pažymėtas"):
@@ -60,7 +66,7 @@ if uploaded_files:
         st.session_state.pasirinktos_eilutes = pd.concat(
             [st.session_state.pasirinktos_eilutes, pasirinktos],
             ignore_index=True
-        ).drop_duplicates()
+        )
 
 # 2. Atminties peržiūra
 st.subheader("🧠 Atmintis")
@@ -74,13 +80,14 @@ else:
     if col1.button("❌ Pašalinti pažymėtas"):
         st.session_state.pasirinktos_eilutes = df_memory.drop(index=pasirinkti_salinimui).reset_index(drop=True)
     if col2.button("🧹 Išvalyti viską"):
-        st.session_state.pasirinktos_eilutes = pd.DataFrame()
+        st.session_state.pasirinktos_eilutes = pd.DataFrame(); st.rerun()
 
 # 3. Eksportas
 if not st.session_state.pasirinktos_eilutes.empty and st.button("⬇️ Eksportuoti Excel"):
     df_final = pd.DataFrame()
+    pasirinktos_unikalios = st.session_state.pasirinktos_eilutes.drop_duplicates()
 
-    for failas, grupė in st.session_state.pasirinktos_eilutes.groupby("Failas"):
+    for failas, grupė in pasirinktos_unikalios.groupby("Failas"):
         failo_pav = grupė["Failas"].iloc[0]
         df = grupė.drop(columns="Failas").copy()
 
