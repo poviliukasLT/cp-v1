@@ -7,7 +7,7 @@ from io import BytesIO
 
 st.set_page_config(page_title="Pasiūlymų generatorius", layout="wide")
 
-st.title("📦 Pasiūlymų kūrimas")
+st.title("📦 Pasiūlymų kūrimo įrankis v1")
 
 # Atmintis tarp seansų
 if 'pasirinktos_eilutes' not in st.session_state:
@@ -83,7 +83,7 @@ else:
         st.session_state.pasirinktos_eilutes = pd.DataFrame(); st.rerun()
 
 # 3. Eksportas
-if not st.session_state.pasirinktos_eilutes.empty and st.button("⬇️ Eksportuoti Excel"):
+if not st.session_state.pasirinktos_eilutes.empty:
     df_final = pd.DataFrame()
     pasirinktos_unikalios = st.session_state.pasirinktos_eilutes.drop_duplicates()
 
@@ -113,6 +113,11 @@ if not st.session_state.pasirinktos_eilutes.empty and st.button("⬇️ Eksportu
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df_final.to_excel(writer, index=False, header=False)
+        st.session_state.export_ready = True
+    st.session_state.export_data = output.getvalue()
+    st.session_state.export_name = f"pasiulymas_{now_str}.xlsx"
+
+if 'export_ready' in st.session_state and st.session_state.export_ready:
     st.download_button(
         label=f"📥 Atsisiųsti pasiūlymą ({now_str})",
         data=output.getvalue(),
