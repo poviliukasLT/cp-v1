@@ -4,8 +4,26 @@ import pandas as pd
 import pytz
 from datetime import datetime
 from io import BytesIO
+from PIL import Image
 
 st.set_page_config(page_title="Pasiūlymų generatorius", layout="wide")
+
+# Fonas ir logotipas
+st.markdown("""
+    <style>
+        body, .stApp {
+            background-color: #ff0000;
+        }
+        .centered-logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Logo
+st.markdown('<div class="centered-logo"><img src="logo-white.png" width="200"></div>', unsafe_allow_html=True)
 
 st.title("📦 Pasiūlymų kūrimo įrankis v1")
 
@@ -39,7 +57,6 @@ def load_excel(file):
     excel = pd.ExcelFile(file)
     return {sheet: excel.parse(sheet).dropna(how="all").reset_index(drop=True) for sheet in excel.sheet_names}
 
-# 1. Įkelti failus
 uploaded_files = st.file_uploader("📁 Įkelkite Excel failus:", type="xlsx", accept_multiple_files=True)
 
 if uploaded_files:
@@ -57,7 +74,7 @@ if uploaded_files:
     df = all_sheets[pasirinkimas]["data"]
     filename = all_sheets[pasirinkimas]["filename"]
 
-    st.dataframe(df.head(100))  # parodyti tik pirmas 100 eilučių
+    st.dataframe(df.head(100))
 
     pasirinktos_eilutes = st.multiselect("✅ Pasirinkite eilučių numerius:", df.index)
     if st.button("➕ Pridėti pažymėtas"):
@@ -68,7 +85,6 @@ if uploaded_files:
             ignore_index=True
         )
 
-# 2. Atminties peržiūra
 st.subheader("🧠 Atmintis")
 df_memory = st.session_state.pasirinktos_eilutes
 if df_memory.empty:
@@ -80,10 +96,10 @@ else:
     if col1.button("❌ Pašalinti pažymėtas"):
         st.session_state.pasirinktos_eilutes = df_memory.drop(index=pasirinkti_salinimui).reset_index(drop=True)
     if col2.button("🧹 Išvalyti viską"):
-        st.session_state.pasirinktos_eilutes = pd.DataFrame(); st.rerun()
+        st.session_state.pasirinktos_eilutes = pd.DataFrame()
+        st.rerun()
 
-# 3. Eksportas
-if not st.session_state.pasirinktos_eilutes.empty:
+if not st.session_state.pasirinktos_eilutes.empty and st.button("⬇️ Eksportuoti Excel"):
     df_final = pd.DataFrame()
     pasirinktos_unikalios = st.session_state.pasirinktos_eilutes.drop_duplicates()
 
@@ -113,14 +129,19 @@ if not st.session_state.pasirinktos_eilutes.empty:
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df_final.to_excel(writer, index=False, header=False)
-        st.session_state.export_ready = True
+    st.session_state.export_ready = True
     st.session_state.export_data = output.getvalue()
     st.session_state.export_name = f"pasiulymas_{now_str}.xlsx"
 
-if 'export_ready' in st.session_state and st.session_state.export_ready:
+if (
+    'export_ready' in st.session_state and
+    st.session_state.export_ready and
+    'export_data' in st.session_state and
+    'export_name' in st.session_state
+):
     st.download_button(
-        label=f"📥 Atsisiųsti pasiūlymą ({now_str})",
-        data=output.getvalue(),
-        file_name=f"pasiulymas_{now_str}.xlsx",
+        label=f"📥 Atsisiųsti pasiūlymą",
+        data=st.session_state.export_data,
+        file_name=st.session_state.export_name,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
